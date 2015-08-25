@@ -7,9 +7,10 @@ boolean bConnected = false;  // Flag for determining if we have an existing conn
 
 Servo servo;  // create servo object to control a servo 
 
-uint16_t servoStill = 1500;
-uint16_t servoFullCounterClockWise = 2100;
-uint16_t servoFullClockWise = 900;
+const long servoStill = 1500;
+const long servoFullCounterClockWise = 2100;
+const long servoFullClockWise = 900;
+const int servoPin = 2;
 
 boolean controlModeIsByDragging = false;
 int oldXValue = -1;
@@ -25,7 +26,7 @@ void setup()
   // Initialize the touchpad to immediate mode
   sbx.setTouchpadMode( SBX_PADMODE_IMMEDIATE );
 
-  servo.attach(2);  // attaches the servo on pin 2 to the servo object 
+  
 } 
  
  
@@ -66,7 +67,7 @@ void loop()
     byte nRed = sbx.getSliderValue(5);
     byte nGreen = sbx.getTouchpadX();
     byte nBlue = sbx.getTouchpadY();
-    Bean.setLed( nRed, nGreen, nBlue );
+    //Bean.setLed( nRed, nGreen, nBlue );
 
     byte speedFactor = sbx.getSliderValue(5);
     speedFactor = speedFactor == 0 ? 1 : speedFactor;
@@ -85,25 +86,38 @@ void loop()
     } else {
       // Calculate servo speed 
       // 0-100 is counterclockwise
-      // 100-155 is still
+      // 100-135 is still
       // 135-255 is clockwise
       
       
       if (xValue < 100 && xValue > 0) {
 //        parallaxSpeed = parallaxServoFullCounterClockWise - ((xValue*2*speedFactor)/255);
         servoSpeed = servoStill + (100 - xValue);
-      } else if (xValue > 155 && xValue < 255) {
+      } else if (xValue > 135 && xValue < 255) {
 //        parallaxSpeed = parallaxServoStill - (((xValue-135)*2*speedFactor)/255);
-        servoSpeed = servoStill - (xValue-155);
+        servoSpeed = servoStill - (xValue-135);
       }
       
     }
     
-    // Give the Bean a slight rest
+    
     if (servoSpeed == servoStill) {
-      Bean.sleep(50);  
+      // Turn off led
+      Bean.setLed(0,0,0);
+      // Detach servo to make it stand till
+      servo.detach();
+      // Sleep the bean to save a little power
+      Bean.sleep(20);  
     } else {
+      // Light up the led to indicate operation
+      Bean.setLed(100, 0, 0);
+      // Attach servo pin if not attached
+      if (!servo.attached()) {
+        servo.attach(2);
+      }
+      // Write the servo speed
       servo.writeMicroseconds(servoSpeed);
+      // Delay execution a bit to make the servo operate smoother
       delay(20);  
     }
     
