@@ -8,7 +8,7 @@ Servo servo;  // create servo object to control a servo
 const long servoStill = 1500;
 const long servoFullCounterClockWise = 2100;
 const long servoFullClockWise = 900;
-const int servoPin = 2;
+const int SERVO_PIN = 2;
 const long MIN_APP_VALUE = -100;
 const long MAX_APP_VALUE = 100;
 
@@ -16,15 +16,23 @@ int oldXValue = -1;
 
 void setup() 
 { 
-    // Initialize serial communications at 57600bps
-  //Serial.begin(57600);
+  // Serial timeout needs to be very short to prevent lag
+  Serial.setTimeout(5);
+  // Initialize serial communications at 57600bps
+  Serial.begin(57600);
 
   // Enable the wake on connect so the Arduino will wake upon BLE connection rather than waiting for serial input
   Bean.enableWakeOnConnect( true );
 
   
 } 
- 
+
+ void attachServo() {
+    // Attach servo pin if not attached
+    if (!servo.attached()) {
+       servo.attach(SERVO_PIN);
+    }
+ }
  
 void loop() 
 {   
@@ -47,7 +55,11 @@ void loop()
     // If we are connected, begin processing
     if(!bConnected)
     {
-      // If this is our first time through loop since connecting, initialize the control values
+      // If this is our first time through loop since connecting 
+      // start by sending the stand still value for 10 seconds to be able to calibrate the servo
+      attachServo();
+      servo.writeMicroseconds(servoStill);
+      delay(10000);
       bConnected = true;
     }
 
@@ -69,18 +81,26 @@ void loop()
       // Detach servo to make it stand till
       servo.detach();
       // Sleep the bean to save a little power
-      Bean.sleep(20);  
+      Bean.sleep(10);  
     } else {
+      //Serial.print("ValueFromApp=");
+      //Serial.print(valueFromApp);
+      //Serial.print("Servospeed=");
+      //Serial.print(servoSpeed);
+      //Serial.flush();
       // Light up the led to indicate operation
-      Bean.setLed(100, 0, 0);
-      // Attach servo pin if not attached
-      if (!servo.attached()) {
-        servo.attach(2);
+      if (valueFromApp > 0) {
+        Bean.setLed(valueFromApp, 0, 0);
+      } else {
+        Bean.setLed(0, 0, valueFromApp);
       }
+      attachServo();
       // Write the servo speed
       servo.writeMicroseconds(servoSpeed);
+      // Reset the scratch data
+      Bean.setScratchNumber(1, 0);
       // Delay execution a bit to make the servo operate smoother
-      delay(20);  
+      delay(50);  
     }
     
   }
